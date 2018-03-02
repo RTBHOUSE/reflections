@@ -4,7 +4,7 @@
 
     <groupId>org.reflections</groupId>
     <artifactId>reflections</artifactId>
-    <version>0.9.12-SNAPSHOT</version>
+    <version>0.9.11-RTB-HOUSE</version>
 
     <name>Reflections</name>
     <description>Reflections - a Java runtime metadata analysis</description>
@@ -44,15 +44,28 @@
         </developer>
     </developers>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
+<repositories>
+    <repository>
+        <id>Adpilot</id>
+        <url>http://nexus.adpilot-rtb.net:8081/content/groups/public</url>
+    </repository>
+</repositories>
+ 
+<distributionManagement>
+    <repository>
+        <id>Adpilot</id>
+        <name>Internal Releases</name>
+        <url>http://nexus.adpilot-rtb.net:8081/content/repositories/releases/</url>
+    </repository>
+    <snapshotRepository>
+        <id>Adpilot-snapshots</id>
+        <name>Internal Snapshots</name>
+        <url>http://nexus.adpilot-rtb.net:8081/content/repositories/snapshots/</url>
+    </snapshotRepository>
+</distributionManagement>
 
     <properties>
-        <guava.version>20.0</guava.version>
+        <guava.version>19.0</guava.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <jdk.version>1.7</jdk.version>
         <additionalparam>-Xdoclint:none</additionalparam>

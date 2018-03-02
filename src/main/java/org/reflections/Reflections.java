@@ -19,6 +19,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -380,26 +381,54 @@ public class Reflections {
      */
     public void expandSuperTypes() {
         if (store.keySet().contains(index(SubTypesScanner.class))) {
-            Multimap<String, String> mmap = store.get(index(SubTypesScanner.class));
-            Sets.SetView<String> keys = Sets.difference(mmap.keySet(), Sets.newHashSet(mmap.values()));
-            Multimap<String, String> expand = HashMultimap.create();
+            Multimap<String, String> subTypes = store.get(index(SubTypesScanner.class));
+            Multimap<String, String> typeAnnotations = store.keySet().contains(index(TypeAnnotationsScanner.class)) 
+                    ? store.get(index(TypeAnnotationsScanner.class)) : null;
+            Sets.SetView<String> keys = Sets.difference(subTypes.keySet(), Sets.newHashSet(subTypes.values()));
+            Multimap<String, String> expandSubTypes = HashMultimap.create();
+            Multimap<String, String> expandTypeAnnotations = HashMultimap.create();
             for (String key : keys) {
-                final Class<?> type = forName(key, loaders());
+                final Class<?> type = forName(key);
                 if (type != null) {
-                    expandSupertypes(expand, key, type);
+                    expandSupertypes(expandSubTypes, expandTypeAnnotations, key, type);
                 }
             }
-            mmap.putAll(expand);
+            subTypes.putAll(expandSubTypes);
+            if (typeAnnotations != null) {
+                typeAnnotations.putAll(expandTypeAnnotations);
+            }
         }
     }
 
-    private void expandSupertypes(Multimap<String, String> mmap, String key, Class<?> type) {
+    private void expandSupertypes(Multimap<String, String> subTypes, Multimap<String, String> typeAnnotatons,
+            String key, Class<?> type) {
         for (Class<?> supertype : ReflectionUtils.getSuperTypes(type)) {
-            if (mmap.put(supertype.getName(), key)) {
-                if (log != null) log.debug("expanded subtype {} -> {}", supertype.getName(), key);
-                expandSupertypes(mmap, supertype.getName(), supertype);
+            if (subTypes.put(supertype.getName(), key)) {
+                if (log != null) {
+                    log.debug("expanded subtype {} -> {}", supertype.getName(), key);
+                }
+                expandSupertypes(subTypes, typeAnnotatons, supertype.getName(), supertype);
+            }
+            // fix for class inheritance
+            if (!Modifier.isInterface(supertype.getModifiers())) {
+                List<String> annotations = getAnnotationNames(supertype.getDeclaredAnnotations());
+                for (String annotation : annotations) {
+                    if (typeAnnotatons.put(annotation, supertype.getName())) {
+                        if (log != null) {
+                            log.debug("expanded type annotations {} -> {}", annotation, supertype.getName());
+                        }
+                    }
+                }
             }
         }
+    }
+    
+    private List<String> getAnnotationNames(Annotation[] annotations) {
+        List<String> names = new ArrayList<>(annotations.length);
+        for (Annotation annotation : annotations) {
+            names.add(annotation.annotationType().getName());
+        }
+        return names;
     }
 
     //query
